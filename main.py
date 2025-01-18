@@ -12,12 +12,14 @@ from events import (
     get_playerdata
 )
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 # Confirm .env variables are correct and loading properly
 checkEnvVar()
 
 # Init bot intents
 intents = intent
 intents.message_content = True
+
 bot = botstuff
 
 
@@ -31,6 +33,8 @@ async def on_ready():
 @app_commands.describe(username="Enter the player's name", platform="Enter the platform (PC, Xbox, PlayStation)", option="Url included ('yes', 'no') for just the link type 'link'")
 async def r6stats(interaction: discord.Interaction, username: str, platform: str, option: str):
 
+    user = interaction.user
+    channel_location = interaction.channel
     await interaction.response.defer()
 
     try:
@@ -38,12 +42,16 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
         option = option.lower()
         
         if platform == 'pc':
+            logging.info(f"{platform} element found")
             platform = 'ubi'
         elif platform == 'xbox':
+            logging.info(f"{platform} element found")
             platform = 'xbl'
         elif platform == 'playstation':
+            logging.info(f"{platform} element found")
             platform = 'psn'
         else:
+            logging.error(f"Failed to find {platform} platform")
             await interaction.followup.send("Failed to find platform. Please try again later.")
             return  # Exit early if the platform is invalid
    
@@ -61,21 +69,26 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
         response.raise_for_status()
 
         if response.status_code == 200:
+            logging.info(f"Accepted, Scrapping for player data")
             get_playerdata(api_url)
             kd, level, playtime, rank, ranked_kd = get_playerdata(api_url)
             # Send the link to the player's stats directly in the message
         
             if option == 'no':
-                await interaction.followup.send(
+                logging.info(f"Scrapping complete, replying to {user.display_name} in {channel_location} channel.")
+                response_message = (
                     f"Here are the stats for {username} on {platform.capitalize()}:\n"
                     f" * Level: {level}\n"
                     f" * All playlist KD Ratio: {kd}\n"
                     f" * Total Play Time: {playtime}\n"
                     f" * Current Rank: {rank}\n"
                     f" * Ranked KD Ratio: {ranked_kd}")
+                logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
+                await interaction.followup.send(response_message)
                 
             elif option == 'yes':
-                await interaction.followup.send(
+                logging.info(f"Scrapping complete, replying to {user.display_name} in {channel_location} channel.")
+                response_message = (
                     f"Stats for {username} on {platform.capitalize()}:\n" 
                     f"Obtained from: {api_url}\n"
                     f"These stats were pulled:\n"
@@ -84,9 +97,14 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
                     f" * Total Play Time: {playtime}\n"
                     f" * Current Rank: {rank}\n"
                     f" * Ranked KD Ratio: {ranked_kd}")
+                logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
+                await interaction.followup.send(response_message)
             
             elif option == "link":
-                await interaction.followup.send(f"Here is the link: {api_url}")
+                logging.info(f"Scrapping complete, replying to {user.display_name} in {channel_location} channel.")
+                response_message = (f"Here is the link for {username}: {api_url}")
+                logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
+                await interaction.followup.send(response_message)
                     
             else:
                 await interaction.followup.send("Failed to fetch stats. Please try again later.")

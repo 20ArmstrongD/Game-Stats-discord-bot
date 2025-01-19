@@ -1,6 +1,6 @@
 import discord
 from discord import app_commands
-import aiohttp  # Use aiohttp for asynchronous HTTP requests
+import aiohttp  
 import logging
 import time
 import asyncio

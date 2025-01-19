@@ -1,8 +1,6 @@
 from dotenv import load_dotenv
 import os
 import logging
-from .keyHole import DISCORD_BOT_TOKEN, GUILD_ID, R6API
-
 
 def checkEnvVar():
     env_varibles = {
@@ -18,6 +16,7 @@ def checkEnvVar():
             except Exception as e:
                 logging.error('Unable to do Enviorment variable value check')
         else:
-            print(f'{var_name}: "{var_value}"\nAll Systems GO!!')
+            logging.info(f'{var_name}: "{var_value}"\nAll Systems GO!!')
 
+# Use for testing function by itself
 # checkEnvVar()

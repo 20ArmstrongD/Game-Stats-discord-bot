@@ -1,7 +1,9 @@
 import discord
 from discord import app_commands
-import requests
+import aiohttp  # Use aiohttp for asynchronous HTTP requests
 import logging
+import time
+import asyncio
 from events import (
     checkEnvVar, 
     DISCORD_BOT_TOKEN,
@@ -11,7 +13,6 @@ from events import (
     on_Ready,
     get_playerdata
 )
-import time
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -24,9 +25,6 @@ intents.message_content = True
 
 bot = botstuff
 
-# Define bot_run flag
-bot_run = False
-
 # Bot event for on_ready
 @bot.event
 async def on_ready():
@@ -37,7 +35,6 @@ async def on_ready():
 @app_commands.describe(username="Enter the player's name", platform="Enter the platform (PC, Xbox, PlayStation)", option="Url included ('yes', 'no') for just the link type 'link'")
 async def r6stats(interaction: discord.Interaction, username: str, platform: str, option: str):
 
-    global bot_run  # Access the bot_run flag
     user = interaction.user
     channel_location = interaction.channel
     await interaction.response.defer()
@@ -60,7 +57,7 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
             logging.error(f"Failed to find {platform} platform")
             await interaction.followup.send("Failed to find platform. Please try again later.")
             return  # Exit early if the platform is invalid
-   
+
     except Exception as e:
         logging.error(f'Failed to convert to {platform}')
    
@@ -68,90 +65,75 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
     api_url = f'https://r6.tracker.network/r6siege/profile/{platform}/{username}/overview'
     
     try:
-        # Check if the URL is reachable by sending a simple request (no need to parse JSON if we just want the link)
-        response = requests.get(api_url, timeout=20)
-        response.raise_for_status()
+        # Use aiohttp to make the request asynchronously
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api_url, timeout=20) as response:
+                if response.status == 200:
+                    if option == 'no':
+                        kd, level, playtime, rank, ranked_kd = get_playerdata(api_url)
+                        logging.info(f"Scraping complete, replying to {user.display_name} in {channel_location} channel.")
+                        response_message = (
+                            f"Here are the stats for {username} on {platform.capitalize()}:\n"
+                            f" * Level: {level}\n"
+                            f" * All playlist KD Ratio: {kd}\n"
+                            f" * Total Play Time: {playtime}\n"
+                            f" * Current Rank: {rank}\n"
+                            f" * Ranked KD Ratio: {ranked_kd}")
+                        logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
+                        await interaction.followup.send(response_message)
+                        end_time = time.time()
+                        time_duration = end_time - start_time
+                        logging.info(f"time to completion: {time_duration:.2f} seconds on request")
 
-        if response.status_code == 200 and not bot_run:
-            logging.info(f"Accepted, Proceeding with {user.display_name}'s request ")
+                    elif option == 'yes':
+                        kd, level, playtime, rank, ranked_kd = get_playerdata(api_url)
+                        logging.info(f"Scraping complete, replying to {user.display_name} in {channel_location} channel.")
+                        response_message = (
+                            f"Stats for {username} on {platform.capitalize()}:\n" 
+                            f"Obtained from: {api_url}\n"
+                            f"These stats were pulled:\n"
+                            f" * Level: {level}\n"
+                            f" * All playlist KD Ratio: {kd}\n"
+                            f" * Total Play Time: {playtime}\n"
+                            f" * Current Rank: {rank}\n"
+                            f" * Ranked KD Ratio: {ranked_kd}")
+                        logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
+                        await interaction.followup.send(response_message)
+                        end_time = time.time()
+                        time_duration = end_time - start_time
+                        logging.info(f"time to completion: {time_duration:.2f} seconds on request")
+                    
+                    elif option == "link":
+                        logging.info(f"Link generated, replying to {user.display_name} in {channel_location} channel.")
+                        response_message = (f"Here is the link for {username}: {api_url}")
+                        logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
+                        await interaction.followup.send(response_message)
+                        end_time = time.time()
+                        time_duration = end_time - start_time
+                        logging.info(f"time to completion: {time_duration:.2f} seconds on request")
 
-            # Ensure get_playerdata runs only once
-            # kd, level, playtime, rank, ranked_kd = get_playerdata(api_url)
-            # bot_run = True  # Set the flag to True to prevent re-running the function
+                    else:
+                        await interaction.followup.send("Failed to fetch stats. Please try again later.")
+                        end_time = time.time()
+                        time_duration = end_time - start_time
+                        logging.info(f"time to failure: {time_duration:.2f} seconds on request")
 
-            # Send the link to the player's stats directly in the message
-            if option == 'no':
-                kd, level, playtime, rank, ranked_kd = get_playerdata(api_url)
-                bot_run = True  # Set the flag to True to prevent re-running the function
-                logging.info(f"Scrapping complete, replying to {user.display_name} in {channel_location} channel.")
-                response_message = (
-                    f"Here are the stats for {username} on {platform.capitalize()}:\n"
-                    f" * Level: {level}\n"
-                    f" * All playlist KD Ratio: {kd}\n"
-                    f" * Total Play Time: {playtime}\n"
-                    f" * Current Rank: {rank}\n"
-                    f" * Ranked KD Ratio: {ranked_kd}")
-                logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
-                await interaction.followup.send(response_message)
-                end_time = time.time()
-                time_duration = end_time - start_time
-                logging.info(f"time to completion: {time_duration:.2f} seconds on request")
-                
-            elif option == 'yes':
-                kd, level, playtime, rank, ranked_kd = get_playerdata(api_url)
-                bot_run = True  # Set the flag to True to prevent re-running the function
-                logging.info(f"Scrapping complete, replying to {user.display_name} in {channel_location} channel.")
-                response_message = (
-                    f"Stats for {username} on {platform.capitalize()}:\n" 
-                    f"Obtained from: {api_url}\n"
-                    f"These stats were pulled:\n"
-                    f" * Level: {level}\n"
-                    f" * All playlist KD Ratio: {kd}\n"
-                    f" * Total Play Time: {playtime}\n"
-                    f" * Current Rank: {rank}\n"
-                    f" * Ranked KD Ratio: {ranked_kd}")
-                logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
-                await interaction.followup.send(response_message)
-                end_time = time.time()
-                time_duration = end_time - start_time
-                logging.info(f"time to completion: {time_duration:.2f} seconds on request")
-            
-            elif option == "link":
-                bot_run = False
-                logging.info(f"Link generated, replying to {user.display_name} in {channel_location} channel.")
-                response_message = (f"Here is the link for {username}: {api_url}")
-                logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
-                await interaction.followup.send(response_message)
-                end_time = time.time()
-                time_duration = end_time - start_time
-                logging.info(f"time to completion: {time_duration:.2f} seconds on request")
-                
-            else:
-                await interaction.followup.send("Failed to fetch stats. Please try again later.")
-                end_time = time.time()
-                time_duration = end_time - start_time
-                logging.info(f"time to failure: {time_duration:.2f} seconds on request")
-        else:
-            await interaction.followup.send("Failed to complete request")
-            end_time = time.time()
-            time_duration = end_time - start_time
-            logging.info(f"time to failure: {time_duration:.2f} seconds on request")
+                else:
+                    await interaction.followup.send("Failed to complete request.")
+                    end_time = time.time()
+                    time_duration = end_time - start_time
+                    logging.info(f"time to failure: {time_duration:.2f} seconds on request")
         
-    except requests.exceptions.Timeout:
+    except asyncio.TimeoutError:
         await interaction.followup.send("The request timed out. Please try again later.")
         end_time = time.time()
         time_duration = end_time - start_time
-        logging.info(f"time to completion: {time_duration:.2f} seconds")
-    except requests.exceptions.HTTPError as e:
-        await interaction.followup.send(f"HTTP error occurred: {str(e)}. Please try again later.")
-        end_time = time.time()
-        time_duration = end_time - start_time
-        logging.info(f"time to completion: {time_duration:.2f} seconds")
-    except requests.exceptions.RequestException as e:
+        logging.info(f"time to failure: {time_duration:.2f} seconds on request")
+    except Exception as e:
         await interaction.followup.send(f"An error occurred: {str(e)}. Please try again later.")
         end_time = time.time()
         time_duration = end_time - start_time
-        logging.info(f"time to completion: {time_duration:.2f} seconds")
+        logging.info(f"time to failure: {time_duration:.2f} seconds on request")
 
 # Run the bot
 bot.run(DISCORD_BOT_TOKEN)

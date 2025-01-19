@@ -79,10 +79,6 @@ def get_playerdata(api_url):
     # non_none_elements = {key: value for key, value in elements.items() if value is not None}
     # none_elements = {key: value for key, value in elements.items() if value is None}
 
-    # Filter elements to return only non-None and None elements separately
-    non_none_elements = {key: value for key, value in elements.items() if value is not None}
-    none_elements = {key: value for key, value in elements.items() if value is None}
-
     return kd, level, playtime, rank, ranked_kd
 
     # return non_none_elements, none_elements

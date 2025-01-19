@@ -73,10 +73,12 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
                         kd, level, playtime, rank, ranked_kd = get_playerdata(api_url)
                         logging.info(f"Scraping complete, replying to {user.display_name} in {channel_location} channel.")
                         response_message = (
-                            f"Here are the stats for {username} on {platform.capitalize()}:\n"
+                            f"Stats pulled for {username} on {platform.capitalize()}:\n" 
+                            f"**Overall Stats**:\n"
                             f" * Level: {level}\n"
                             f" * All playlist KD Ratio: {kd}\n"
                             f" * Total Play Time: {playtime}\n"
+                            f"**Ranked Stats**\n"
                             f" * Current Rank: {rank}\n"
                             f" * Ranked KD Ratio: {ranked_kd}")
                         logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
@@ -89,12 +91,13 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
                         kd, level, playtime, rank, ranked_kd = get_playerdata(api_url)
                         logging.info(f"Scraping complete, replying to {user.display_name} in {channel_location} channel.")
                         response_message = (
-                            f"Stats for {username} on {platform.capitalize()}:\n" 
+                            f"Stats pulled for {username} on {platform.capitalize()}:\n" 
                             f"Obtained from: {api_url}\n"
-                            f"These stats were pulled:\n"
+                            f"**Overall Stats**:\n"
                             f" * Level: {level}\n"
                             f" * All playlist KD Ratio: {kd}\n"
                             f" * Total Play Time: {playtime}\n"
+                            f"**Ranked Stats**\n"
                             f" * Current Rank: {rank}\n"
                             f" * Ranked KD Ratio: {ranked_kd}")
                         logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")

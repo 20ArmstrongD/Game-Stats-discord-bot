@@ -32,8 +32,8 @@ async def on_ready():
 
 # Slash command definition
 @bot.tree.command(guild=discord.Object(id=GUILD_ID), name="r6stats", description="Fetch Rainbow Six Siege stats for a player")
-@app_commands.describe(username="Enter the player's name", platform="Enter the platform (PC, Xbox, PlayStation)", option="Url included ('yes', 'no') for just the link type 'link'")
-async def r6stats(interaction: discord.Interaction, username: str, platform: str, option: str):
+@app_commands.describe(username="Enter the player's name", platform="Enter the platform (PC, Xbox, PlayStation)", link_option="For just the link type 'yes'")
+async def r6stats(interaction: discord.Interaction, username: str, platform: str, link_option: str = None):
 
     user = interaction.user
     channel_location = interaction.channel
@@ -42,7 +42,7 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
 
     try:
         platform = platform.lower()
-        option = option.lower()
+        link_option = link_option.lower() if link_option else None
         
         if platform == 'pc':
             logging.info(f"{platform} element found")
@@ -60,8 +60,7 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
 
     except Exception as e:
         logging.error(f'Failed to convert to {platform}')
-   
-    # Constructing the API URL
+
     api_url = f'https://r6.tracker.network/r6siege/profile/{platform}/{username}/overview'
     
     try:
@@ -69,48 +68,38 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
         async with aiohttp.ClientSession() as session:
             async with session.get(api_url, timeout=20) as response:
                 if response.status == 200:
-                    if option == 'no':
-                        kd, level, playtime, rank, ranked_kd = get_playerdata(api_url)
+                    if link_option is None:
+
+                        kd, level, playtime, rank, ranked_kd, ranked_img,= get_playerdata(api_url)
                         logging.info(f"Scraping complete, replying to {user.display_name} in {channel_location} channel.")
-                        response_message = (
-                            f"Stats pulled for {username} on {platform.capitalize()}:\n" 
-                            f"**Overall Stats**:\n"
-                            f" * Level: {level}\n"
-                            f" * All playlist KD Ratio: {kd}\n"
-                            f" * Total Play Time: {playtime}\n"
-                            f"**Ranked Stats**\n"
-                            f" * Current Rank: {rank}\n"
-                            f" * Ranked KD Ratio: {ranked_kd}")
-                        logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
-                        await interaction.followup.send(response_message)
+                        
+                        # Create embed message for 'no' link option
+                        embed = discord.Embed(title=f"Stats for {username} on {platform.capitalize()}\n", color=discord.Color.yellow())
+                        embed.add_field(name="**Overall Stats**", value=f" * Level: {level}\n * All playlist KD Ratio: {kd}\n * Total Play Time: {playtime}", inline=False)
+                        embed.add_field(name="**Ranked Stats**", value=f" * Current Rank: {rank}\n * Ranked KD: {ranked_kd}", inline=False)
+                        embed.set_thumbnail(url=ranked_img)  
+            
+                        # Send embed message for 'yno' link option
+                        logging.info(f"Sending this message to {user} in {channel_location} channel: \n{embed}")
+                        await interaction.followup.send(embed=embed)
+
                         end_time = time.time()
                         time_duration = end_time - start_time
                         logging.info(f"time to completion: {time_duration:.2f} seconds on request")
 
-                    elif option == 'yes':
-                        kd, level, playtime, rank, ranked_kd = get_playerdata(api_url)
-                        logging.info(f"Scraping complete, replying to {user.display_name} in {channel_location} channel.")
-                        response_message = (
-                            f"Stats pulled for {username} on {platform.capitalize()}:\n" 
-                            f"Obtained from: {api_url}\n"
-                            f"**Overall Stats**:\n"
-                            f" * Level: {level}\n"
-                            f" * All playlist KD Ratio: {kd}\n"
-                            f" * Total Play Time: {playtime}\n"
-                            f"**Ranked Stats**\n"
-                            f" * Current Rank: {rank}\n"
-                            f" * Ranked KD Ratio: {ranked_kd}")
-                        logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
-                        await interaction.followup.send(response_message)
-                        end_time = time.time()
-                        time_duration = end_time - start_time
-                        logging.info(f"time to completion: {time_duration:.2f} seconds on request")
                     
-                    elif option == "link":
+                    elif link_option is not None:
+                        # api_url = f'https://r6.tracker.network/r6siege/profile/{platform}/{username}/overview'
                         logging.info(f"Link generated, replying to {user.display_name} in {channel_location} channel.")
-                        response_message = (f"Here is the link for {username}: {api_url}")
-                        logging.info(f"Sending this message to {user} in {channel_location} channel: \n{response_message}")
-                        await interaction.followup.send(response_message)
+                        
+                        # Create embed message for 'Just link' option
+                        embed = discord.Embed(title=f"Stats for {username} on {platform.capitalize()}\n", color=discord.Color.yellow())
+                        embed.add_field(name=f"Can be found on this link:", value=f"{api_url}")
+
+                        # Send embed message for'Just link' option
+                        logging.info(f"Sending this message to {user} in {channel_location} channel: \n{embed}")
+                        await interaction.followup.send(embed=embed)
+
                         end_time = time.time()
                         time_duration = end_time - start_time
                         logging.info(f"time to completion: {time_duration:.2f} seconds on request")

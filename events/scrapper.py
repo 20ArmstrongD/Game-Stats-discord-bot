@@ -37,25 +37,32 @@ def get_playerdata(api_url):
             kd_element = driver.find_element(By.XPATH, "//span[contains(text(),'KD')]/following-sibling::span/span")
             level_element = driver.find_element(By.XPATH, "//span[@class='text-14 text-secondary font-sans font-medium leading-3/4' and contains(., 'Level')]/span[@class='text-primary']")
             playtime_element = driver.find_element(By.XPATH, "//span[@class='text-14 text-secondary font-sans font-medium leading-3/4' and contains(., 'Playtime')]/span[@class='text-primary']")
+            player_profile_img_element = driver.find_element(By.XPATH,"/html/body/div[1]/div/div[2]/div[3]/div/main/div[3]/div[1]/div[2]/header/div[3]/div[1]/div[1]/div/img")
 
             kd = kd_element.text if kd_element else None
             level = level_element.text if level_element else None
             playtime = playtime_element.text if playtime_element else None
+            player_profile_img = player_profile_img_element.get_attribute("src") if player_profile_img_element else None
 
+            
             # try to find Ranked elements (not every player has these)
             try:
                 rank_element = driver.find_element(By.XPATH, "//span[contains(@class, 'text-20') and contains(@class, 'text-secondary')]")
                 ranked_kd_element = driver.find_element(By.XPATH, "//section[1]//div[3]//div[1]//div[2]//div[5]//span[2]/span")
                 ranked_img_element = driver.find_element(By.XPATH, "/html/body/div/div/div[2]/div[3]/div/main/div[3]/div[2]/div[2]/div[2]/section[2]/div[2]/div[1]/div[2]/div[1]/img")
-
+                
+                
                 rank = rank_element.text if rank_element else None
                 ranked_kd = ranked_kd_element.text if ranked_kd_element else None
                 ranked_img = ranked_img_element.get_attribute("src") if ranked_img_element else None
+                
+                player_profile_img = player_profile_img_element.get_attribute("src") if player_profile_img_element else None
+                
+                unknown_elements = [rank, ranked_kd, ranked_img]
             except Exception as e:
-                logging.warning("Ranked elements not found.")
-                rank = None
-                ranked_kd = None
-                ranked_img = None
+                logging.warning("the following Ranked elements were not found.")
+                for unknown_element in unknown_elements:
+                    logging.warning("* ",unknown_element)
 
             elements = {
                 'KD': kd,
@@ -63,7 +70,8 @@ def get_playerdata(api_url):
                 'Playtime': playtime,
                 'Rank': rank,
                 'Ranked KD': ranked_kd,
-                'Ranked Image': ranked_img}
+                'Ranked Image': ranked_img,
+                'Player Profile Pic': player_profile_img}
 
             logging.info("Player Data Successfully Found!")
             for key, value in elements.items():
@@ -72,6 +80,9 @@ def get_playerdata(api_url):
 
         except Exception as e:
             logging.error(f"Error extracting player data: {e}")
+            for key, value in elements.items():
+                if value is None:
+                    logging.info(f"    *    {key}: {value}")
 
     except Exception as e:
         logging.error(f"Error initializing WebDriver: {e}")
@@ -84,7 +95,7 @@ def get_playerdata(api_url):
     # non_none_elements = {key: value for key, value in elements.items() if value is not None}
     # none_elements = {key: value for key, value in elements.items() if value is None}
 
-    return kd, level, playtime, rank, ranked_kd, ranked_img
+    return kd, level, playtime, rank, ranked_kd, ranked_img, player_profile_img
 
     # return non_none_elements, none_elements
 

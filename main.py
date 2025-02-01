@@ -70,7 +70,7 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
                 if response.status == 200:
                     if link_option is None:
 
-                        kd, level, playtime, rank, ranked_kd, ranked_img,= get_playerdata(api_url)
+                        kd, level, playtime, rank, ranked_kd, ranked_img, player_profile_img = get_playerdata(api_url)
                         logging.info(f"Scraping complete, replying to {user.display_name} in {channel_location} channel.")
                         
                         # Create embed message for 'no' link option
@@ -78,6 +78,7 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
                         embed.add_field(name="**Overall Stats**", value=f" * Level: {level}\n * All playlist KD Ratio: {kd}\n * Total Play Time: {playtime}", inline=False)
                         embed.add_field(name="**Ranked Stats**", value=f" * Current Rank: {rank}\n * Ranked KD: {ranked_kd}", inline=False)
                         embed.set_thumbnail(url=ranked_img)  
+                        embed.set_thumbnail(url=player_profile_img)  
             
                         # Send embed message for 'yno' link option
                         logging.info(f"Sending this message to {user} in {channel_location} channel: \n{embed}")

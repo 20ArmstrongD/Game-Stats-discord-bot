@@ -1,5 +1,5 @@
 import discord
-from discord import app_commands
+from discord.ext import app_commands
 import aiohttp  
 import logging
 import time
@@ -77,8 +77,8 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
                         embed = discord.Embed(title=f"Stats for {username} on {platform.capitalize()}\n", color=discord.Color.yellow())
                         embed.add_field(name="**Overall Stats**", value=f" * Level: {level}\n * All playlist KD Ratio: {kd}\n * Total Play Time: {playtime}", inline=False)
                         embed.add_field(name="**Ranked Stats**", value=f" * Current Rank: {rank}\n * Ranked KD: {ranked_kd}", inline=False)
-                        embed.set_thumbnail(url=ranked_img)  
                         embed.set_thumbnail(url=player_profile_img)  
+                        embed.set_thumbnail(url=ranked_img)  
             
                         # Send embed message for 'yno' link option
                         logging.info(f"Sending this message to {user} in {channel_location} channel: \n{embed}")

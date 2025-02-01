@@ -56,22 +56,24 @@ def get_playerdata(api_url):
                 ranked_kd = ranked_kd_element.text if ranked_kd_element else None
                 ranked_img = ranked_img_element.get_attribute("src") if ranked_img_element else None
                 
-                player_profile_img = player_profile_img_element.get_attribute("src") if player_profile_img_element else None
                 
-                unknown_elements = [rank, ranked_kd, ranked_img]
+                unknown_elements = {"Rank":rank,
+                                    "Ranked KD":ranked_kd,
+                                    "Ranked Image": ranked_img}
             except Exception as e:
                 logging.warning("the following Ranked elements were not found.")
-                for unknown_element in unknown_elements:
-                    logging.warning("* ",unknown_element)
+                for key, value in unknown_elements.items():
+                    if value is None:
+                        logging.warning(f"    *    {key}: {value}")
 
             elements = {
                 'KD': kd,
                 'Level': level,
                 'Playtime': playtime,
                 'Rank': rank,
+                'Player Profile Pic': player_profile_img,
                 'Ranked KD': ranked_kd,
-                'Ranked Image': ranked_img,
-                'Player Profile Pic': player_profile_img}
+                'Ranked Image': ranked_img}
 
             logging.info("Player Data Successfully Found!")
             for key, value in elements.items():
@@ -95,7 +97,7 @@ def get_playerdata(api_url):
     # non_none_elements = {key: value for key, value in elements.items() if value is not None}
     # none_elements = {key: value for key, value in elements.items() if value is None}
 
-    return kd, level, playtime, rank, ranked_kd, ranked_img, player_profile_img
+    return kd, level, playtime, player_profile_img, rank, ranked_kd, ranked_img
 
     # return non_none_elements, none_elements
 

@@ -16,7 +16,7 @@ def checkEnvVar():
             except Exception as e:
                 logging.error('Unable to do Enviorment variable value check')
         else:
-            logging.info(f'{var_name}: "{var_value}"\nAll Systems GO!!')
+            logging.info(f'{var_name} is gtg')
 
 # Use for testing function by itself
 # checkEnvVar()

@@ -1,105 +1,125 @@
 import logging
-from selenium import webdriver
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options
+import asyncio
+from pyppeteer import launch
 
 # Logging configuration
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%I:%M:%S %p'  # 12-hour clock with AM/PM
+)
 
-def get_playerdata(api_url):
+# api_url = 'https://r6.tracker.network/r6siege/profile/ubi/BigMcD0n/overview'
 
-    # Configure Firefox option for headless browsing (non-ui)
-    options = Options()
-    options.headless = True  
-    options.log.level = "trace"
-    options.set_preference("gfx.webrender.enabled", False)
-    options.set_preference("layers.acceleration.disabled", True)
-
-    # Initialize driver outside the try block
-    driver = None  
-
+async def get_playerdata(api_url):
     try:
-        # Init the Firefox WebDriver using pointing to path for geckodriver
-        service = Service('/home/DiscordPi/.wdm/drivers/geckodriver/linux64/geckodriver')
-        driver = webdriver.Firefox(service=service, options=options)
+        # Launch a headless browser
+        browser = await launch(
+            headless=True,
+            executablePath='/usr/bin/chromium-browser',  # Path to the Chromium browser installed on your system
+            args=['--no-sandbox']
+        )
+        page = await browser.newPage()
 
-        # Navigate to the URL
-        driver.get(api_url)
+        # Set a longer timeout if needed
+        await page.goto(api_url, {'timeout': 60000})  # Wait for the page to load for 60 seconds
 
-        # Wait for the page to load, in case of dynamic content
-        driver.implicitly_wait(10)
+        await page.waitForSelector("span", {'timeout': 60000})  # Wait for any span tag to be loaded
 
-        # Find the elements containing the player data (assuming everyplayer has these)
+        # Use JavaScript evaluation to find the text content
+        # Use CSS selector or XPATH to find values 
+        kd = await page.evaluate('''() => {
+            const xpath = "//span[contains(text(), 'KD')]/following-sibling::span/span";
+            const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+            const element = result.singleNodeValue;
+            return element ? element.innerText : null;
+        }''')
+        # logging.info(f"KD found")
+        
+        level = await page.evaluate('''() => {
+            const xpath = "/html/body/div[1]/div/div[2]/div[3]/div/main/div[3]/div[2]/div[2]/div[2]/section[1]/div/div[1]/span[1]/span";
+            const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+            const element = result.singleNodeValue;
+            return element ? element.innerText : null;
+        }''')
+        # logging.info(f"Level found")
+
+        playtime = await page.evaluate('''() => {
+            const element = document.querySelector("span.text-secondary:nth-child(3) > span:nth-child(1)");
+            return element ? element.innerText : null;
+        }''')
+        # logging.info(f"Playtime found")
+
+        user_profile_img = await page.evaluate('''() => {
+            const element = document.querySelector(".user-avatar__image");
+            return element ? element.src : null;
+        }''')
+        # logging.info(f"Player Profile Pic found")
+
+        # Try to find ranked elements (if available)
         try:
-            logging.info(f"Looking For Player Data...")
-
-            kd_element = driver.find_element(By.XPATH, "//span[contains(text(),'KD')]/following-sibling::span/span")
-            level_element = driver.find_element(By.XPATH, "//span[@class='text-14 text-secondary font-sans font-medium leading-3/4' and contains(., 'Level')]/span[@class='text-primary']")
-            playtime_element = driver.find_element(By.XPATH, "//span[@class='text-14 text-secondary font-sans font-medium leading-3/4' and contains(., 'Playtime')]/span[@class='text-primary']")
-            player_profile_img_element = driver.find_element(By.XPATH,"/html/body/div[1]/div/div[2]/div[3]/div/main/div[3]/div[1]/div[2]/header/div[3]/div[1]/div[1]/div/img")
-
-            kd = kd_element.text if kd_element else None
-            level = level_element.text if level_element else None
-            playtime = playtime_element.text if playtime_element else None
-            player_profile_img = player_profile_img_element.get_attribute("src") if player_profile_img_element else None
-
             
-            # try to find Ranked elements (not every player has these)
-            try:
-                rank_element = driver.find_element(By.XPATH, "//span[contains(@class, 'text-20') and contains(@class, 'text-secondary')]")
-                ranked_kd_element = driver.find_element(By.XPATH, "//section[1]//div[3]//div[1]//div[2]//div[5]//span[2]/span")
-                ranked_img_element = driver.find_element(By.XPATH, "/html/body/div/div/div[2]/div[3]/div/main/div[3]/div[2]/div[2]/div[2]/section[2]/div[2]/div[1]/div[2]/div[1]/img")
-                
-                
-                rank = rank_element.text if rank_element else None
-                ranked_kd = ranked_kd_element.text if ranked_kd_element else None
-                ranked_img = ranked_img_element.get_attribute("src") if ranked_img_element else None
-                
-                
-                unknown_elements = {"Rank":rank,
-                                    "Ranked KD":ranked_kd,
-                                    "Ranked Image": ranked_img}
-            except Exception as e:
-                logging.warning("the following Ranked elements were not found.")
-                for key, value in unknown_elements.items():
-                    if value is None:
-                        logging.warning(f"    *    {key}: {value}")
+            rank = await page.evaluate('''() => {
+                const element = document.querySelector(".flex-1 > div:nth-child(1) > span:nth-child(1)");
+                return element ? element.innerText : null;
+            }''')
+            # logging.info(f"Rank found")
+            
+            ranked_kd = await page.evaluate('''() => {
+                const element = document.querySelector("div.playlist:nth-child(1) > div:nth-child(2) > div:nth-child(5) > span:nth-child(2) > span:nth-child(1)");
+                return element ? element.innerText : null;
+            }''')
+            # logging.info(f"Ranked_KD found")
+            
+            rank_img = await page.evaluate('''() => {
+                const element = document.querySelector("header.rounded-t-4 > div:nth-child(1) > img:nth-child(1)");
+                return element ? element.src : null;
+            }''')
 
-            elements = {
-                'KD': kd,
-                'Level': level,
-                'Playtime': playtime,
-                'Rank': rank,
-                'Player Profile Pic': player_profile_img,
-                'Ranked KD': ranked_kd,
-                'Ranked Image': ranked_img}
-
-            logging.info("Player Data Successfully Found!")
-            for key, value in elements.items():
-                if value is not None:
-                    logging.info(f"    *    {key}: {value}")
+            # # Log the Ranked Image
+            # logging.info(f"Ranked Image found")
 
         except Exception as e:
-            logging.error(f"Error extracting player data: {e}")
-            for key, value in elements.items():
+            ranked_elements = {"Rank": rank,
+                               "Ranked_KD": ranked_kd,
+                               "Ranked_img": rank_img}
+            logging.warning(f'These unable to be pulled')
+            for key, value in ranked_elements.items():
                 if value is None:
-                    logging.info(f"    *    {key}: {value}")
+                    print(f"{key}: {value}")
+
+        # Log the results
+        elements = {
+            'KD': kd,
+            'Level': level,
+            'Playtime': playtime,
+            'Rank': rank,
+            'Ranked KD': ranked_kd
+        }
+        img_elements = {
+            'Player Profile Pic': user_profile_img,
+            'Ranked Image': rank_img}
+
+        logging.info("Player Data Successfully Found!")
+        for key, value in elements.items():
+            if value:
+                logging.info(f"    *    {key}: {value}")
+        for key, value in img_elements.items():
+            if value is not None and len(value) > 10:
+                logging.info(f"    *    {key}: url has been grabbed")
 
     except Exception as e:
-        logging.error(f"Error initializing WebDriver: {e}")
-
+        logging.error(f"Error in Pyppeteer: {e}")
+        
     finally:
-        if driver:
-            driver.quit()  
+            # Ensure that the browser closes
+            if browser:
+                await browser.close()  # Close the browser session
 
-    # elements to return only non-None and None elements separately (for testing function)
-    # non_none_elements = {key: value for key, value in elements.items() if value is not None}
-    # none_elements = {key: value for key, value in elements.items() if value is None}
 
-    return kd, level, playtime, player_profile_img, rank, ranked_kd, ranked_img
+        
+    return kd, level, playtime, rank, ranked_kd, user_profile_img, rank_img
 
-    # return non_none_elements, none_elements
 
-# For testing
+# scrapper.py script testing
 # get_playerdata(api_url)

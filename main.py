@@ -1,5 +1,5 @@
 import discord
-from discord.ext import app_commands
+from discord import app_commands
 import aiohttp  
 import logging
 import time
@@ -14,7 +14,11 @@ from events import (
     get_playerdata
 )
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%I:%M:%S %p'  # 12-hour clock with AM/PM
+)
 
 # Confirm .env variables are correct and loading properly
 checkEnvVar()
@@ -70,18 +74,20 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
                 if response.status == 200:
                     if link_option is None:
 
-                        kd, level, playtime, rank, ranked_kd, ranked_img, player_profile_img = get_playerdata(api_url)
-                        logging.info(f"Scraping complete, replying to {user.display_name} in {channel_location} channel.")
+                        kd, level, playtime, rank, ranked_kd, user_profile_img, rank_img =  await get_playerdata(api_url)
+                        print("\n")
+                        logging.info(f"-----Scraping complete!-----\n")
                         
                         # Create embed message for 'no' link option
                         embed = discord.Embed(title=f"Stats for {username} on {platform.capitalize()}\n", color=discord.Color.yellow())
                         embed.add_field(name="**Overall Stats**", value=f" * Level: {level}\n * All playlist KD Ratio: {kd}\n * Total Play Time: {playtime}", inline=False)
                         embed.add_field(name="**Ranked Stats**", value=f" * Current Rank: {rank}\n * Ranked KD: {ranked_kd}", inline=False)
-                        embed.set_thumbnail(url=player_profile_img)  
-                        embed.set_thumbnail(url=ranked_img)  
+                        embed.set_thumbnail(url=user_profile_img)  
+                        embed.set_image(url=rank_img)  
             
-                        # Send embed message for 'yno' link option
-                        logging.info(f"Sending this message to {user} in {channel_location} channel: \n{embed}")
+                        # Send embed message for 'yes' link option
+                        logging.info(f"Replying to {user} in {channel_location}")
+                        logging.info(f"this link was generated: {api_url}")
                         await interaction.followup.send(embed=embed)
 
                         end_time = time.time()
@@ -109,24 +115,24 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
                         await interaction.followup.send("Failed to fetch stats. Please try again later.")
                         end_time = time.time()
                         time_duration = end_time - start_time
-                        logging.info(f"time to failure: {time_duration:.2f} seconds on request")
+                        logging.error(f"time to failure: {time_duration:.2f} seconds on request")
 
                 else:
                     await interaction.followup.send("Failed to complete request.")
                     end_time = time.time()
                     time_duration = end_time - start_time
-                    logging.info(f"time to failure: {time_duration:.2f} seconds on request")
+                    logging.error(f"time to failure: {time_duration:.2f} seconds on request")
         
     except asyncio.TimeoutError:
         await interaction.followup.send("The request timed out. Please try again later.")
         end_time = time.time()
         time_duration = end_time - start_time
-        logging.info(f"time to failure: {time_duration:.2f} seconds on request")
+        logging.error(f"time to failure: {time_duration:.2f} seconds on request")
     except Exception as e:
         await interaction.followup.send(f"An error occurred: {str(e)}. Please try again later.")
         end_time = time.time()
         time_duration = end_time - start_time
-        logging.info(f"time to failure: {time_duration:.2f} seconds on request")
+        logging.error(f"time to failure: {time_duration:.2f} seconds on request")
 
 # Run the bot
 bot.run(DISCORD_BOT_TOKEN)

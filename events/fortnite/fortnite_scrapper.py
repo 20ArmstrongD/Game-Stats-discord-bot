@@ -9,9 +9,9 @@ logging.basicConfig(
     datefmt='%I:%M:%S %p'  # 12-hour clock with AM/PM
 )
 
-# api_url = 'https://r6.tracker.network/r6siege/profile/ubi/BigMcD0n/overview'
+# url = 'https://r6.tracker.network/r6siege/profile/ubi/BigMcD0n/overview'
 
-async def get_playerdata(api_url):
+async def get_fortnite_player_data(url):
     try:
         # Launch a headless browser
         browser = await launch(
@@ -22,7 +22,7 @@ async def get_playerdata(api_url):
         page = await browser.newPage()
 
         # Set a longer timeout if needed
-        await page.goto(api_url, {'timeout': 60000})  # Wait for the page to load for 60 seconds
+        await page.goto(url, {'timeout': 60000})  # Wait for the page to load for 60 seconds
 
         await page.waitForSelector("span", {'timeout': 60000})  # Wait for any span tag to be loaded
 
@@ -81,7 +81,6 @@ async def get_playerdata(api_url):
 
         except Exception as e:
             ranked_elements = {"Rank": rank,
-                               "Ranked_KD": ranked_kd,
                                "Ranked_img": rank_img}
             logging.warning(f'These unable to be pulled')
             for key, value in ranked_elements.items():
@@ -93,8 +92,7 @@ async def get_playerdata(api_url):
             'KD': kd,
             'Level': level,
             'Playtime': playtime,
-            'Rank': rank,
-            'Ranked KD': ranked_kd
+            'Rank': rank
         }
         img_elements = {
             'Player Profile Pic': user_profile_img,
@@ -118,8 +116,8 @@ async def get_playerdata(api_url):
 
 
         
-    return kd, level, playtime, rank, ranked_kd, user_profile_img, rank_img
+    return kd, level, playtime, rank, user_profile_img, rank_img
 
 
 # scrapper.py script testing
-# get_playerdata(api_url)
+# get_playerdata(url)

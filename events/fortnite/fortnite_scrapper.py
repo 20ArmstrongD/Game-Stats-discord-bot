@@ -9,8 +9,8 @@ logging.basicConfig(
     datefmt='%I:%M:%S %p'  # 12-hour clock with AM/PM
 )
 
-# url = 'https://r6.tracker.network/r6siege/profile/ubi/BigMcD0n/overview'
 
+url = 'https://fortnitetracker.com/profile/all/Budg3taryChunk5'
 async def get_fortnite_player_data(url):
     try:
         # Launch a headless browser
@@ -28,84 +28,68 @@ async def get_fortnite_player_data(url):
 
         # Use JavaScript evaluation to find the text content
         # Use CSS selector or XPATH to find values 
-        kd = await page.evaluate('''() => {
-            const xpath = "//span[contains(text(), 'KD')]/following-sibling::span/span";
-            const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-            const element = result.singleNodeValue;
-            return element ? element.innerText : null;
-        }''')
-        # logging.info(f"KD found")
-        
-        level = await page.evaluate('''() => {
-            const xpath = "/html/body/div[1]/div/div[2]/div[3]/div/main/div[3]/div[2]/div[2]/div[2]/section[1]/div/div[1]/span[1]/span";
-            const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-            const element = result.singleNodeValue;
-            return element ? element.innerText : null;
-        }''')
-        # logging.info(f"Level found")
-
-        playtime = await page.evaluate('''() => {
-            const element = document.querySelector("span.text-secondary:nth-child(3) > span:nth-child(1)");
-            return element ? element.innerText : null;
-        }''')
-        # logging.info(f"Playtime found")
-
-        user_profile_img = await page.evaluate('''() => {
-            const element = document.querySelector(".user-avatar__image");
-            return element ? element.src : null;
-        }''')
-        # logging.info(f"Player Profile Pic found")
-
-        # Try to find ranked elements (if available)
         try:
-            
-            rank = await page.evaluate('''() => {
-                const element = document.querySelector(".flex-1 > div:nth-child(1) > span:nth-child(1)");
+            kd = await page.evaluate('''() => {
+                const xpath = "//*[@id="overview"]/div[2]/div/div[1]/div/div[1]/div[3]/div[2]/div[2]/div";
+                const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                const element = result.singleNodeValue;
                 return element ? element.innerText : null;
             }''')
-            # logging.info(f"Rank found")
+            # logging.info(f"KD found")
             
-            ranked_kd = await page.evaluate('''() => {
-                const element = document.querySelector("div.playlist:nth-child(1) > div:nth-child(2) > div:nth-child(5) > span:nth-child(2) > span:nth-child(1)");
+            level = await page.evaluate('''() => {
+                const xpath = "//*[@id="overview"]/div[2]/div/div[1]/header/div/div[2]/text()";
+                const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                const element = result.singleNodeValue;
                 return element ? element.innerText : null;
             }''')
-            # logging.info(f"Ranked_KD found")
+            # logging.info(f"Level found")
+
+            playtime = await page.evaluate('''() => {
+            const xpath = "//*[@id='overview']/div[2]/div/div[1]/header/div/div[1]/text()";
+            const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+            const element = result.singleNodeValue;
+            return element ? element.textContent.trim() : null;
+            }''')
+            # logging.info(f"Playtime found")
             
-            rank_img = await page.evaluate('''() => {
-                const element = document.querySelector("header.rounded-t-4 > div:nth-child(1) > img:nth-child(1)");
+            elements = {
+                    'playtime': playtime,
+                    'kd': kd,
+                    'level': level
+                    }
+                 
+        except Exception as e:
+            logging.warning(f'These unable to be pulled')
+            for key, value in elements.items():
+                if value is None:
+                    logging.warning(f"{key}: {value}")
+        
+        try:
+            user_profile_img = await page.evaluate('''() => {
+                const element = document.querySelector(".profile-header-avatar");
                 return element ? element.src : null;
             }''')
-
-            # # Log the Ranked Image
-            # logging.info(f"Ranked Image found")
-
+            # logging.info(f"Player Profile Pic found")
+            
+            img_elements = {
+                'user_profile_img':user_profile_img
+                }
         except Exception as e:
-            ranked_elements = {"Rank": rank,
-                               "Ranked_img": rank_img}
-            logging.warning(f'These unable to be pulled')
-            for key, value in ranked_elements.items():
-                if value is None:
-                    print(f"{key}: {value}")
-
-        # Log the results
-        elements = {
-            'KD': kd,
-            'Level': level,
-            'Playtime': playtime,
-            'Rank': rank
-        }
-        img_elements = {
-            'Player Profile Pic': user_profile_img,
-            'Ranked Image': rank_img}
-
-        logging.info("Player Data Successfully Found!")
+            logging.warning(f" Image element(s) not found")
+            for key,value in img_elements.items():
+                logging.warning(f"{key}: {value}")
+                
+                
+        logging.info(f"Player Data Sucessfully found!")
         for key, value in elements.items():
             if value:
                 logging.info(f"    *    {key}: {value}")
         for key, value in img_elements.items():
-            if value is not None and len(value) > 10:
-                logging.info(f"    *    {key}: url has been grabbed")
+            if value and len(value) > 10:
+                logging.info(f"    *    {key}: url has been grabbed")      
 
+        
     except Exception as e:
         logging.error(f"Error in Pyppeteer: {e}")
         
@@ -116,8 +100,9 @@ async def get_fortnite_player_data(url):
 
 
         
-    return kd, level, playtime, rank, user_profile_img, rank_img
+    return kd, level, playtime, user_profile_img
 
 
 # scrapper.py script testing
-# get_playerdata(url)
+
+asyncio.run(get_fortnite_player_data(url))

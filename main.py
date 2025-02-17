@@ -11,7 +11,7 @@ from events import (
     botstuff,
     intent,
     on_Ready,
-    get_playerdata
+    get_r6siege_player_data
 )
 
 logging.basicConfig(
@@ -74,7 +74,7 @@ async def r6stats(interaction: discord.Interaction, username: str, platform: str
                 if response.status == 200:
                     if link_option is None:
 
-                        kd, level, playtime, rank, ranked_kd, user_profile_img, rank_img =  await get_playerdata(api_url)
+                        kd, level, playtime, rank, ranked_kd, user_profile_img, rank_img =  await get_r6siege_player_data(api_url)
                         print("\n")
                         logging.info(f"-----Scraping complete!-----\n")
                         

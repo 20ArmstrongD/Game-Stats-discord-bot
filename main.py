@@ -75,7 +75,7 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
 
     game_scrapers = {
         "siege": {"func": get_r6siege_player_data, "requires_platform": True},
-        "fortnite": {"func": get_fortnite_player_data, "requires_platform": False}
+        "fortnite": {"func": generate_link, "requires_platform": False}
     }
 
     print(f"Received game: '{game}', Lowercased: '{game.lower()}'")

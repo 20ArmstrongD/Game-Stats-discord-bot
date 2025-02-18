@@ -3,5 +3,5 @@ test.py
 pivenv
 macvenv
 events/scrapper_test.py
-events/fortnite
+events/fortnite/fortnite_scrapper.py
 images/

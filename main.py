@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 import logging
 import time
+import os
 import inspect
 from events import (
     checkEnvVar, 
@@ -35,22 +36,21 @@ async def on_ready():
     await on_Ready()
 
 
-game_choices = [
-    app_commands.Choice(name = "Fortnite", value = "fortnite"),
-    app_commands.Choice(name = "Rainbow Six Siege", value = "siege"),
-    ]
 # Slash command definition
 @bot.tree.command(guild=discord.Object(id=GUILD_ID), name="game_stats", description="Fetch game stats for a player")
 @app_commands.describe(username="Enter the player's name",game='Choose a game' ,platform="Enter the platform (PC, Xbox, PlayStation)")
-@app_commands.choices(game=game_choices)
-async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice[str], username: str, platform: str = None, ):
+@app_commands.choices(game=[
+    app_commands.Choice(name = "Fortnite", value = "fortnite"),
+    app_commands.Choice(name = "Rainbow Six Siege", value = "siege"),
+])
 
+async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice[str], username: str, platform: str = None, ):
+    
+    if not interaction.response.is_done():
+        await interaction.response.defer()
+    
     game = game.value
-    print(f"Selected game: {game}")
-    user = interaction.user
-    channel_location = interaction.channel
-    await interaction.response.defer()
-    start_time = time.time()
+
     if platform is not None:
         platform = platform.lower()
         try:
@@ -78,8 +78,6 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
         "fortnite": {"func": generate_link, "requires_platform": False}
     }
 
-    print(f"Received game: '{game}', Lowercased: '{game.lower()}'")
-
     if game not in game_scrapers:
         await interaction.followup.send(f"{game} not supported. Please pick from these options:")  
         return  
@@ -91,8 +89,9 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
         await interaction.followup.send(f"{game} requires a platform (PC, Xbox, PSN)")
     
     num_args = len(inspect.signature(scraper_functions).parameters)
-    # if asyncio.iscoroutinefunction(scraper_functions):
+ 
     if num_args == 2:
+        logging.info(f"grabbing {game} elements...")
         kd, level, playtime, rank, ranked_kd, user_profile_img, rank_img = await get_r6siege_player_data(username, platform)
 
         # If any value is None, provide a default
@@ -105,9 +104,7 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
         rank_img = rank_img if rank_img is not None else "N/A"
         
 
-        # Use the values as needed
-        print(f"KD: {kd}, Level: {level}, Playtime: {playtime}, Rank: {rank}")
-        
+        logging.info(f"found data, replying to {interaction.user}")
         embed = discord.Embed(title=f"Stats for {username} on {game.capitalize()}\n", color=discord.Color.yellow())
         embed.add_field(name="**Overall Stats**", value=f" * Level: {level}\n * All playlist KD Ratio: {kd}\n * Total Play Time: {playtime}", inline=False)
         embed.add_field(name="**Ranked Stats**", value=f" * Current Rank: {rank}\n * Ranked KD: {ranked_kd}", inline=False)
@@ -117,14 +114,15 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
 
     elif num_args ==1:
         
-        url= await generate_link(username)
+        url, file= await generate_link(username)
         
-        if url is None:
+        if url or file is None:
             await interaction.followup.send("Failed to generate the link.")
             return
         
         embed = discord.Embed(title=f"Here is the link for {username}'s Fortnite stats", color=discord.Color.purple())
         embed.add_field(name="Link", value = f"{url}", inline=False)
+        embed.set_thumbnail(url=file)  
         await interaction.followup.send(embed=embed)
     
     else:

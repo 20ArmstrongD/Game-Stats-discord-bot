@@ -114,15 +114,14 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
 
     elif num_args ==1:
         
-        url, file= await generate_link(username)
+        url= await generate_link(username)
         
-        if url or file is None:
+        if url is None:
             await interaction.followup.send("Failed to generate the link.")
             return
         
         embed = discord.Embed(title=f"Here is the link for {username}'s Fortnite stats", color=discord.Color.purple())
         embed.add_field(name="Link", value = f"{url}", inline=False)
-        embed.set_thumbnail(url=file)  
         await interaction.followup.send(embed=embed)
     
     else:

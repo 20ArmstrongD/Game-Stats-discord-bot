@@ -50,10 +50,4 @@ Please ensure your code adheres to the project's coding standards and includes a
 
 This project is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute this software in accordance with the license terms.
 
-## Acknowledgments
 
-- [List any libraries, tools, or individuals you'd like to thank or acknowledge.]
-
----
-
-*Note: Replace placeholder text (e.g., `[invite link]`, `[Add other supported games here]`) with actual information relevant to your project.*

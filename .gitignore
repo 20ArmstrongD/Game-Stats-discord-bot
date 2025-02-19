@@ -5,3 +5,5 @@ macvenv
 events/scrapper_test.py
 events/fortnite/fortnite_scrapper.py
 images/
+__pycache__/
+*.pyc

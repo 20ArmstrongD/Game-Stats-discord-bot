@@ -11,6 +11,8 @@ from events import (
     on_Ready,
     get_r6siege_player_data,
     generate_link, 
+    save_usernames,
+    load_usernames
 )
 
 logging.basicConfig(
@@ -33,25 +35,26 @@ bot = botstuff
 async def on_ready():
     await on_Ready()
 
-
-# Dictionary to store usernames per game
-usernames = {
-    f"fortnite": ["Budg3taryChunk5"],
-    f"siege": ["BigMcD0n"]
-}
-
 # Function to provide dynamic username suggestions
 async def username_autocomplete(interaction: discord.Interaction, current: str):
-    """Dynamically provides username suggestions based on input."""
+    """Dynamically provides username suggestions based on input."""    
+    
     game_value = getattr(interaction.namespace, 'game', None)
-
 
     """Check if game value is none"""
     if game_value:
         """create list of choice objects based on the usernames and the game tied to that value"""
+        usernames = load_usernames()
+        game_usernames = usernames.get(game_value, [])
+        
+        # if usernames not in list add it
+        if current and current not in game_usernames:
+            game_usernames.append(current)
+            usernames[game_value] = game_usernames
+            
         choices = [
             app_commands.Choice(name=name, value=name) 
-            for name in usernames.get(game_value, []) if current.lower() in name.lower()
+            for name in game_usernames if current.lower() in name.lower()
         ]
         return choices # matching choice list
     return [] # return empty list if game value is not provided
@@ -71,9 +74,13 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
 
     game = game.value.lower()
 
-    # Add username to the list if not present
-    if username not in usernames.get(game, []):
-        usernames.setdefault(game, []).append(username)
+    usernames = load_usernames()
+    game_usernames = usernames.get(game, [])
+    
+    if username not in game_usernames:
+        game_usernames.append(username)  # Add username
+        usernames[game] = game_usernames  # Update game list
+        save_usernames(usernames)  # Save changes to file
         logging.info(f"New username '{username}' added to {game} list.")
     else:
         logging.info(f"{username} found in {game} list")
@@ -99,12 +106,13 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
         "fortnite": {"func": generate_link, "requires_platform": False}
     }
 
+    scraper_func = game_scrapers[game]["func"]
+    requires_platform = game_scrapers[game]["requires_platform"]
+    
     if game not in game_scrapers:
         await interaction.followup.send(f"{game} not supported. Please pick from these options:")
         return
 
-    scraper_func = game_scrapers[game]["func"]
-    requires_platform = game_scrapers[game]["requires_platform"]
 
     if requires_platform and not platform:
         await interaction.followup.send(f"{game.capitalize()} requires a platform (PC, Xbox, PlayStation).")

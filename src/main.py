@@ -10,9 +10,11 @@ from events import (
     intent,
     on_Ready,
     get_r6siege_player_data,
+    get_val_player_data,
     generate_link, 
     save_usernames,
-    load_usernames
+    load_usernames,
+    generate_val_link
 )
 
 logging.basicConfig(
@@ -65,6 +67,7 @@ async def username_autocomplete(interaction: discord.Interaction, current: str):
 @app_commands.choices(game=[
     app_commands.Choice(name="Fortnite", value="fortnite"),
     app_commands.Choice(name="Rainbow Six Siege", value="siege"),
+    app_commands.Choice(name="Valorant", value = "valorant")
 ])
 @app_commands.autocomplete(username=username_autocomplete)
 async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice[str], username: str, platform: str = None):
@@ -103,7 +106,8 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
     # Mapping of game scrapers
     game_scrapers = {
         "siege": {"func": get_r6siege_player_data, "requires_platform": True},
-        "fortnite": {"func": generate_link, "requires_platform": False}
+        "fortnite": {"func": generate_link, "requires_platform": False},
+        "valorant": {"func": generate_val_link, "requires_platform": False }
     }
 
     scraper_func = game_scrapers[game]["func"]
@@ -142,19 +146,31 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
         await interaction.followup.send(embed=embed)
 
     elif num_args == 1:
-        url = await generate_link(username)
+        if game == "fortnite":
+            url = await generate_link(username)
 
-        if not url:
-            await interaction.followup.send("Failed to generate the link.")
-            return
-        else:
-            logging.info(f"Link generated")
-            logging.info(f"Replying to {interaction.user} in {interaction.channel}")
+            if not url:
+                await interaction.followup.send("Failed to generate the link.")
+                return
+            else:
+                logging.info(f"Link generated")
+                logging.info(f"Replying to {interaction.user} in {interaction.channel}")
 
-        embed = discord.Embed(title=f"Fortnite Stats for {username}", color=discord.Color.purple())
-        embed.add_field(name="Link", value=f"{url}", inline=False)
-        await interaction.followup.send(embed=embed)
+            embed = discord.Embed(title=f"Fortnite Stats for {username}", color=discord.Color.purple())
+            embed.add_field(name="Link", value=f"{url}", inline=False)
+            await interaction.followup.send(embed=embed)
+        elif game == "valorant":
+            url = await generate_val_link(username)
+            if not url:
+                await interaction.followup.send("Failed to generate the link.")
+                return
+            else:
+                logging.info(f"Link generated")
+                logging.info(f"Replying to {interaction.user} in {interaction.channel}")
 
+            embed = discord.Embed(title=f"Valorant Stats for {username}", color=discord.Color.red())
+            embed.add_field(name="Link", value=f"{url}", inline=False)
+            await interaction.followup.send(embed=embed)
     else:
         await interaction.followup.send(f"Could not fetch stats for {username} in {game.capitalize()}.")
         

@@ -11,7 +11,7 @@ The Game Stats Discord Bot is designed to provide real-time statistics and infor
 - **Multi-Game Support**: Access stats for multiple games, including but not limited to:
   - Rainbow Six: Siege
   - Fortnite
-  - Valorant (coming soon)
+  - Valorant
 
 
 ## Installation

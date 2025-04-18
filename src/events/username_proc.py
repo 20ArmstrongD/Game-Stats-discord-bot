@@ -1,6 +1,6 @@
 import json
 
-file_path = "/home/DiscordPi/code/discord_bots/r6-discord-bot/src/usernames/usernames.json"
+file_path = "/home/DiscordPi/code/discord_bots/r6-discord-bot/src/Json/usernames.json"
 
 def load_usernames():
     try:

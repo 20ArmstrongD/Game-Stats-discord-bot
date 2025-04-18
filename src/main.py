@@ -1,5 +1,6 @@
 import discord
 from discord import app_commands
+import validators
 import logging
 import inspect
 from events import (
@@ -32,10 +33,21 @@ intents.message_content = True
 
 bot = botstuff
 
+def validate_url(url):
+    return url if validators.url(url) else None
+
 # Bot event for on_ready
 @bot.event
 async def on_ready():
     await on_Ready()
+
+@bot.event
+async def on_disconnect():
+    logging.warning("Bot disconnected! Attempting to reconnect...")
+
+@bot.event
+async def on_resumed():
+    logging.info("Bot session resumed successfully.")
 
 # Function to provide dynamic username suggestions
 async def username_autocomplete(interaction: discord.Interaction, current: str):
@@ -62,12 +74,19 @@ async def username_autocomplete(interaction: discord.Interaction, current: str):
     return [] # return empty list if game value is not provided
 
 # Slash command definition
-@bot.tree.command(guild=discord.Object(id=GUILD_ID), name="game_stats", description="Fetch game stats for a player")
-@app_commands.describe(username="Enter the player's name", game="Choose a game", platform="Enter the platform (PC, Xbox, PlayStation)")
-@app_commands.choices(game=[
-    app_commands.Choice(name="Fortnite", value="fortnite"),
-    app_commands.Choice(name="Rainbow Six Siege", value="siege"),
-    app_commands.Choice(name="Valorant", value = "valorant")
+@bot.tree.command(
+        name="game_stats", 
+        description="Fetch game stats for a player"
+    )
+@app_commands.describe(
+    username="Enter the player's name", 
+    game="Choose a game", 
+    platform="Enter the platform (PC, Xbox, PlayStation)")
+@app_commands.choices(
+    game = [
+        app_commands.Choice(name="Rainbow Six Siege", value="siege"),
+        app_commands.Choice(name="Fortnite", value="fortnite"),
+        app_commands.Choice(name="Valorant", value = "valorant")
 ])
 @app_commands.autocomplete(username=username_autocomplete)
 async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice[str], username: str, platform: str = None):
@@ -127,6 +146,7 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
     if num_args == 2:
         logging.info(f"Fetching {game} stats for {username} on {platform}...")
         kd, level, playtime, rank, ranked_kd, user_profile_img, rank_img = await get_r6siege_player_data(username, platform)
+        
 
         # Ensure values are not None
         kd = kd or "N/A"
@@ -134,15 +154,23 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
         playtime = playtime or "N/A"
         rank = rank or "N/A"
         ranked_kd = ranked_kd or "N/A"
-        user_profile_img = user_profile_img or "N/A"
-        rank_img = rank_img or "N/A"
+        user_profile_img = validate_url(user_profile_img)
+        rank_img = validate_url(rank_img)
 
-        logging.info(f"Stats retrieved. Sending response to {interaction.user} in {interaction.channel}...")
-        embed = discord.Embed(title=f"Stats for {username} on {game.capitalize()}", color=discord.Color.yellow())
-        embed.add_field(name="**Overall Stats**", value=f" * Level: {level}\n * KD Ratio: {kd}\n * Play Time: {playtime}", inline=False)
-        embed.add_field(name="**Ranked Stats**", value=f" * Rank: {rank}\n * Ranked KD: {ranked_kd}", inline=False)
-        embed.set_thumbnail(url=user_profile_img)
-        embed.set_image(url=rank_img)
+        if rank_img is None:
+            logging.info(f"Stats retrieved. Sending response to {interaction.user} in {interaction.channel} from (Server: {interaction.guild.name}).")
+            embed = discord.Embed(title=f"Stats for {username} on {game.capitalize()}", color=discord.Color.yellow())
+            embed.add_field(name="**Overall Stats**", value=f" * Level: {level}\n * KD Ratio: {kd}\n * Play Time: {playtime}", inline=False)
+            embed.set_thumbnail(url=user_profile_img)
+        else:
+            logging.info(f"Stats retrieved. Sending response to {interaction.user} in {interaction.channel} from (Server: {interaction.guild.name}).")
+            embed = discord.Embed(title=f"Stats for {username} on {game.capitalize()}", color=discord.Color.yellow())
+            embed.add_field(name="**Overall Stats**", value=f" * Level: {level}\n * KD Ratio: {kd}\n * Play Time: {playtime}", inline=False)
+            embed.add_field(name="**Ranked Stats**", value=f" * Rank: {rank}\n * Ranked KD: {ranked_kd}", inline=False)
+            embed.set_thumbnail(url=user_profile_img)
+            embed.set_image(url=rank_img)
+
+
         await interaction.followup.send(embed=embed)
 
     elif num_args == 1:
@@ -154,7 +182,7 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
                 return
             else:
                 logging.info(f"Link generated")
-                logging.info(f"Replying to {interaction.user} in {interaction.channel}")
+                logging.info(f"Replying to {interaction.user} in {interaction.channel} from (Server: {interaction.guild.name}).")
 
             embed = discord.Embed(title=f"Fortnite Stats for {username}", color=discord.Color.purple())
             embed.add_field(name="Link", value=f"{url}", inline=False)
@@ -166,7 +194,7 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
                 return
             else:
                 logging.info(f"Link generated")
-                logging.info(f"Replying to {interaction.user} in {interaction.channel}")
+                logging.info(f"Replying to {interaction.user} in {interaction.channel} from (Server: {interaction.guild.name}).")
 
             embed = discord.Embed(title=f"Valorant Stats for {username}", color=discord.Color.red())
             embed.add_field(name="Link", value=f"{url}", inline=False)
@@ -176,4 +204,4 @@ async def pull_stats(interaction: discord.Interaction, game: app_commands.Choice
         
 
 # Run the bot
-bot.run(DISCORD_BOT_TOKEN)
+bot.run(DISCORD_BOT_TOKEN, reconnect=True)

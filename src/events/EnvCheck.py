@@ -5,7 +5,6 @@ import logging
 def checkEnvVar():
     env_varibles = {
         "DISCORD_BOT_TOKEN" : os.getenv('DISCORD_BOT_TOKEN'),
-        "GUILD_ID" : os.getenv('GUILD_ID')
         }
 
     for var_name, var_value in env_varibles.items():
@@ -16,7 +15,7 @@ def checkEnvVar():
             except Exception as e:
                 logging.error('Unable to do Enviorment variable value check')
         else:
-            logging.info(f'{var_name} is gtg')
+            logging.info(f'{var_name} is ✅')
 
 # Use for testing function by itself
 # checkEnvVar()

@@ -42,11 +42,12 @@ async def get_r6siege_player_data(username, platform):
 
             level = await page.evaluate(
                 '''() => {
-                    const xpath = "//*[@id="app"]/div[2]/div[3]/div/main/div[3]/div[2]/div[3]/div[2]/section[1]/div/div[1]/span[1]/span";
+                    const xpath = '//*[@id="app"]/div[2]/div[3]/div/main/div[3]/div[2]/div[3]/div[2]/section[1]/div/div[1]/span[1]/span';
                     const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
                     return result.singleNodeValue ? result.singleNodeValue.innerText : null;
                 }'''
             )
+
 
             playtime = await page.evaluate(
                 '''() => {

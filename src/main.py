@@ -6,7 +6,6 @@ import inspect
 from events import (
     checkEnvVar, 
     DISCORD_BOT_TOKEN,
-    GUILD_ID,
     botstuff,
     intent,
     on_Ready,

@@ -84,12 +84,26 @@ async def on_Ready():
 
         # --- Sync slash commands ---
     try:
-        synced_commands = await bot.tree.sync()
-        command_names = [cmd.name for cmd in synced_commands]
+        # Load the guild IDs from your JSON file
+        with open(GUILD_LOG_PATH, "r") as file:
+            data = json.load(file)
+            servers = data.get("servers", [])
 
-        if len(command_names) <= 1:
-            print(f"✅ Synced command: {', '.join(command_names)}")
+        if servers:
+            for server in servers:
+                guild_id = server.get("id")
+                guild_name = server.get("name")
+                if guild_id:
+                    try:
+                        guild = discord.Object(id=guild_id)
+                        await bot.tree.sync(guild=guild)
+                        print(f"✅ Synced commands for guild: {guild_name} (ID: {guild_id})")
+                    except Exception as e:
+                        print(f"⚠️ Failed to sync commands for guild {guild_name} (ID: {guild_id}): {e}")
+                else:
+                    print(f"⚠️ No ID found for server: {guild_name}")
         else:
-            print(f"✅ Synced commands: {', '.join(command_names)}")
+            print("⚠️ No server data found in guild.json.")
+            
     except Exception as e:
-            print(f"❌ Failed to sync commands: {e}")
+        print(f"⚠️ Error during on_ready sync: {e}")
